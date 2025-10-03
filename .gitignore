@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+data_ingestion.py
+data_preprocessing.py
+feature_engineering.py
+model_building.py
+model_eval.py
+flow.txt
