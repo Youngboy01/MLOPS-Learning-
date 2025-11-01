@@ -4,7 +4,9 @@ import pandas as pd
 
 log_dir = "logs"
 os.makedirs(log_dir, exist_ok=True)  # ensuring log_directory exists
-logger = logging.getLogger("DataIngestion")  # Made an object of name logger
+logger = logging.getLogger(
+    "DataIngestion"
+)  # logging use karke ek logger object banaya jiska naam diya DataIngestion
 logger.setLevel("DEBUG")  # set level to debug , this will show the other levels too
 console_handler = logging.StreamHandler()  # made an object named console_handler using StreamHandler function, this helps printing our logs directly in the terminal. Logger->handler->console_handler
 console_handler.setLevel("DEBUG")
@@ -41,17 +43,24 @@ def load_data(file_url: str) -> pd.DataFrame:
         raise
 
 
-def preprocess_data(df: pd.DataFrame):
+def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     try:
         df.drop(columns=["Unnamed: 2", "Unnamed: 3", "Unnamed: 4"], inplace=True)
-        df.rename(columns={"c1": "target", "c2": "text"})
+        df.rename(columns={"v1": "target", "v2": "text"}, inplace=True)
+        # Check for duplicates after renaming columns
+        num_duplicates = df.duplicated().sum()
+        print(f"Number of duplicates: {num_duplicates}")
+        logger.debug(f"Number of duplicates: {num_duplicates}")
+        # Drop duplicates to match notebook behavior
+        df = df.drop_duplicates(keep='first')
+        logger.debug("Duplicates dropped")
         logger.debug("Preprocessing done")
         return df
     except KeyError as e:
         logger.debug("Had some missing key %s", e)
         raise
     except Exception as e:
-        logger.debug("unexpected error occured %s", e)
+        logger.debug("unexpected error occurred %s", e)
         raise
 
 
@@ -68,21 +77,24 @@ def save_data(
     except Exception as e:
         logger.debug("unexpected error occured %s", e)
         raise
+
+
 def main():
-    data_path = r"D:\Learning MLOPS\MLOPS-Learning-\complete pipeline\experiments\spam.csv"
+    data_path = (
+        r"D:\Learning MLOPS\MLOPS-Learning-\complete pipeline\experiments\spam.csv"
+    )
     logger.debug("starting data ingestion")
     df = load_data(data_path)
     df = preprocess_data(df)
     logger.debug("Data shape after preprocessing: %s", str(df.shape))
 
-    # Example of splitting (if you want)
     from sklearn.model_selection import train_test_split
-    train, test = train_test_split(df, test_size=0.2, random_state=42)
 
-    save_data(train, test, os.path.dirname(data_path))
+    train, test = train_test_split(df, test_size=0.2, random_state=2)
+
+    save_data(train, test, data_file_path="./data")
     logger.debug("Data ingestion pipeline completed successfully")
 
 
-# Entry point
 if __name__ == "__main__":
     main()

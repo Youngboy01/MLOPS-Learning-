@@ -30,6 +30,7 @@ logger.addHandler(file_handler)
 
 
 def text_cleaning(text):
+    """Input text converted to lower case,tokenized,stopwords and punctuations removed, stemming done"""
     text = text.lower()  # lowercase
     text = nltk.word_tokenize(text)  # tokenization
     text = [
@@ -47,20 +48,22 @@ def text_cleaning(text):
 
 
 def preprocessing(df: pd.DataFrame, text_column="text", target_column="target"):
+    """encodes target col, removes duplicate, transform the text column"""
     try:
         logger.debug("Starting preprocessing of dataframe")
         encoder = LabelEncoder()
         df[target_column] = encoder.fit_transform(
             df[target_column]
-        )  # encoding the target column
+        )  # encoding the target column into 0/1
         logger.debug("Label encoding completed")
-
+        duplicate = df.duplicated().sum()
+        logger.debug('total duplicates %s',duplicate)
         # remove duplicates rows
-        df = df.drop_duplicates(keep="first")
-        logger.debug("Duplicate rows removed")
-        # text cleaning
+        df = df.drop_duplicates(keep='first')
+        logger.debug("Duplicate rows removed and now len of df is %s",len(df))
 
-        df.loc[:text_column] = df[text_column].apply(text_cleaning)
+        # text cleaning
+        df.loc[:, text_column] = df[text_column].apply(text_cleaning)
         logger.debug("Text cleaning completed")
         return df
     except KeyError as e:
@@ -79,6 +82,8 @@ def main(text_column="text", target_column="target"):
 
         train_transformed = preprocessing(train_data, text_column, target_column)
         test_transformed = preprocessing(test_data, text_column, target_column)
+        logger.debug("Shape after preprocessing is: %s", str(train_transformed.shape))
+        logger.debug("Shape after preprocessing is: %s", str(test_transformed.shape))
         data_path = os.path.join("./data", "interim")
         os.makedirs(data_path, exist_ok=True)
         train_transformed.to_csv(
@@ -94,3 +99,7 @@ def main(text_column="text", target_column="target"):
         logger.error("No data: %s", e)
     except Exception as e:
         logger.error("Failed to complete the data transformation process: %s", e)
+
+
+if __name__ == "__main__":
+    main()
