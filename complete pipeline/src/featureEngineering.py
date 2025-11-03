@@ -40,6 +40,7 @@ def load_params(params_path: str) -> dict:
         logger.error("error while loading params %s", e)
         raise
 
+
 def load_data(filepath: str) -> pd.DataFrame:
     """Loading Data"""
     try:
@@ -66,12 +67,16 @@ def applyTfIdf(
         X_test = test_data["text"].values
         y_test = test_data["target"].values
         X_train_bow = vectorizer.fit_transform(X_train)
-        X_test_bow = vectorizer.fit_transform(X_test)
+        X_test_bow = vectorizer.transform(
+            X_test
+        )  # ✅ Use transform() only on test data
         train_df = pd.DataFrame(X_train_bow.todense())
         train_df["label"] = y_train
         test_df = pd.DataFrame(X_test_bow.todense())
         test_df["label"] = y_test
-        logger.debug("data transform + tfidf applied")
+        logger.debug(
+            "data transform + tfidf applied with max_features=%d", max_features
+        )
         return train_df, test_df
 
     except Exception as e:
@@ -92,9 +97,9 @@ def save_data(df: pd.DataFrame, file_path: str) -> None:
 
 def main():
     try:
-        params = load_params('params.yaml')
-        max_features = params['featureEngineering']['max_features']
-        #max_features = 500
+        params = load_params("params.yaml")
+        max_features = params["featureEngineering"]["max_features"]
+        # max_features = 500
         train_data = load_data("./data/interim/train_processed.csv")
         test_data = load_data("./data/interim/test_processed.csv")
         train_df, test_df = applyTfIdf(train_data, test_data, max_features)

@@ -88,8 +88,8 @@ def save_data(
     try:
         data_path = os.path.join(data_file_path, "initial")
         os.makedirs(data_path, exist_ok=True)
-        train_data.to_csv(os.path.join(data_path, "train.csv"))
-        test_data.to_csv(os.path.join(data_path, "test.csv"))
+        train_data.to_csv(os.path.join(data_path, "train.csv"), index=False)
+        test_data.to_csv(os.path.join(data_path, "test.csv"), index=False)
         logger.debug("Test and train csv files have been saved")
     except Exception as e:
         logger.debug("unexpected error occured %s", e)

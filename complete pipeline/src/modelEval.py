@@ -33,6 +33,7 @@ file_handler.setFormatter(formatter)
 logger.addHandler(console_hanlder)
 logger.addHandler(file_handler)
 
+
 def load_params(params_path: str) -> dict:
     try:
         with open(params_path, "r") as file:
@@ -48,6 +49,8 @@ def load_params(params_path: str) -> dict:
     except Exception as e:
         logger.error("error while loading params %s", e)
         raise
+
+
 def load_data(filepath: str):
     """Load data from csv"""
     try:
@@ -93,7 +96,7 @@ def eval_matrices(classifier, X_test: np.ndarray, y_test: np.ndarray):
             "recall": recall,
             "precision": precision,
             "auc": auc,
-            "f1_score": f1,
+            "f1": f1,
         }
         logger.debug("All metrics scores have been properly calculated")
         return metrics
@@ -114,18 +117,23 @@ def save_metrics(metrics: dict, filepath: str):
 
 def main():
     try:
-        params = load_params('params.yaml')
+        params = load_params("params.yaml")
         classifier = load_model("./models/model.pkl")
         test_data = load_data("./data/processed/test_tfidf.csv")
         X_test = test_data.iloc[:, :-1].values
         y_test = np.array(test_data.iloc[:, -1].values)
         metrics = eval_matrices(classifier, X_test, y_test)
+
+        # Get predictions for logging to DVCLive
+        y_pred = classifier.predict(X_test)
+        y_pred_proba = classifier.predict_proba(X_test)[:, 1]
+
         with Live(save_dvc_exp=True) as live:
-            live.log_metric('accuracy',float(accuracy_score(y_test, y_test)))
-            live.log_metric('precision',float(precision_score(y_test,y_test)))
-            live.log_metric('recall',float(recall_score(y_test,y_test)))
-            live.log_metric('auc',float(roc_auc_score(y_test,y_test)))
-            live.log_metric('f1',float(f1_score(y_test,y_test)))
+            live.log_metric("accuracy", float(accuracy_score(y_test, y_pred)))
+            live.log_metric("precision", float(precision_score(y_test, y_pred)))
+            live.log_metric("recall", float(recall_score(y_test, y_pred)))
+            live.log_metric("auc", float(roc_auc_score(y_test, y_pred_proba)))
+            live.log_metric("f1", float(f1_score(y_test, y_pred)))
             live.log_params(params)
         save_metrics(metrics, "reports/metrics.json")
     except Exception as e:
