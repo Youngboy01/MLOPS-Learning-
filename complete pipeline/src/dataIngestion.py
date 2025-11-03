@@ -1,6 +1,7 @@
 import logging
 import os
 import pandas as pd
+import yaml
 
 log_dir = "logs"
 os.makedirs(log_dir, exist_ok=True)  # ensuring log_directory exists
@@ -29,6 +30,23 @@ logger.addHandler(file_handler)
 # LOGGING PART DONE
 
 
+def load_params(params_path: str) -> dict:
+    try:
+        with open(params_path, "r") as file:
+            params = yaml.safe_load(file)
+        logger.debug("params retrieved from %s", params_path)
+        return params
+    except FileNotFoundError as e:
+        logger.error("File not found: %s", e)
+        raise
+    except yaml.YAMLError as e:
+        logger.error("yaml error %s", e)
+        raise
+    except Exception as e:
+        logger.error("error while loading params %s", e)
+        raise
+
+
 def load_data(file_url: str) -> pd.DataFrame:
     """Load data from a csv file"""
     try:
@@ -52,7 +70,7 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
         print(f"Number of duplicates: {num_duplicates}")
         logger.debug(f"Number of duplicates: {num_duplicates}")
         # Drop duplicates to match notebook behavior
-        df = df.drop_duplicates(keep='first')
+        df = df.drop_duplicates(keep="first")
         logger.debug("Duplicates dropped")
         logger.debug("Preprocessing done")
         return df
@@ -73,13 +91,14 @@ def save_data(
         train_data.to_csv(os.path.join(data_path, "train.csv"))
         test_data.to_csv(os.path.join(data_path, "test.csv"))
         logger.debug("Test and train csv files have been saved")
-
     except Exception as e:
         logger.debug("unexpected error occured %s", e)
         raise
 
 
 def main():
+    params = load_params("params.yaml")
+    test_size = params["dataIngestion"]["test_size"]
     data_path = (
         r"D:\Learning MLOPS\MLOPS-Learning-\complete pipeline\experiments\spam.csv"
     )
@@ -90,7 +109,7 @@ def main():
 
     from sklearn.model_selection import train_test_split
 
-    train, test = train_test_split(df, test_size=0.2, random_state=2)
+    train, test = train_test_split(df, test_size=test_size, random_state=2)
 
     save_data(train, test, data_file_path="./data")
     logger.debug("Data ingestion pipeline completed successfully")

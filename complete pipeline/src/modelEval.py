@@ -11,6 +11,8 @@ from sklearn.metrics import (
     f1_score,
 )
 import json
+import yaml
+from dvclive.live import Live
 
 log_dir = "logs"
 os.makedirs(log_dir, exist_ok=True)
@@ -31,7 +33,21 @@ file_handler.setFormatter(formatter)
 logger.addHandler(console_hanlder)
 logger.addHandler(file_handler)
 
-
+def load_params(params_path: str) -> dict:
+    try:
+        with open(params_path, "r") as file:
+            params = yaml.safe_load(file)
+        logger.debug("params retrieved from %s", params_path)
+        return params
+    except FileNotFoundError as e:
+        logger.error("File not found: %s", e)
+        raise
+    except yaml.YAMLError as e:
+        logger.error("yaml error %s", e)
+        raise
+    except Exception as e:
+        logger.error("error while loading params %s", e)
+        raise
 def load_data(filepath: str):
     """Load data from csv"""
     try:
@@ -98,11 +114,19 @@ def save_metrics(metrics: dict, filepath: str):
 
 def main():
     try:
+        params = load_params('params.yaml')
         classifier = load_model("./models/model.pkl")
         test_data = load_data("./data/processed/test_tfidf.csv")
         X_test = test_data.iloc[:, :-1].values
         y_test = np.array(test_data.iloc[:, -1].values)
         metrics = eval_matrices(classifier, X_test, y_test)
+        with Live(save_dvc_exp=True) as live:
+            live.log_metric('accuracy',float(accuracy_score(y_test, y_test)))
+            live.log_metric('precision',float(precision_score(y_test,y_test)))
+            live.log_metric('recall',float(recall_score(y_test,y_test)))
+            live.log_metric('auc',float(roc_auc_score(y_test,y_test)))
+            live.log_metric('f1',float(f1_score(y_test,y_test)))
+            live.log_params(params)
         save_metrics(metrics, "reports/metrics.json")
     except Exception as e:
         logger.error("ERROR %s", e)
